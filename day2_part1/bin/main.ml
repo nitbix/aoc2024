@@ -1,32 +1,40 @@
 open Core
 open Base
 
-type intmap = int Map.M(Int).t
+let is_safe_pair x y prev_diff = 
+  if (y-x) * prev_diff < 0 then
+    false
+  else
+    if Int.abs(x-y) = 0 || Int.abs(x-y) > 3 then
+      false
+    else
+      true
+
+let is_safe report =
+  let rec is_safe_helper report prev_diff = 
+    match report with
+    | [] -> true
+    | _x :: [] -> true
+    | x :: y :: rest ->
+      (* Stdio.print_endline (Int.to_string x ^ " " ^ Int.to_string y ^  " " ^ Int.to_string prev_diff ^ Bool.to_string (is_safe_pair x y prev_diff)); *)
+      if is_safe_pair x y prev_diff then
+        is_safe_helper (y :: rest) (y-x)
+      else
+        false
+  in
+  (* Stdio.print_endline (Bool.to_string (is_safe_helper report 0)); *)
+  is_safe_helper report 0
 
 let () = 
   let filename = "input" in
   let file_lines  = In_channel.read_lines filename in
-  let left_list, right_list = List.fold ~init:([], []) file_lines ~f:(fun (left, right) x -> 
+  (* List.iter file_lines ~f:(fun x -> Stdio.print_endline x); *)
+  let reports = List.fold ~init:[] file_lines ~f:(fun lines x -> 
     let regex = Re.compile (Re.rep1 Re.space) in
     let matches =  Re.split regex x in
-    match matches with
-    | [left_num; right_num] ->
-      (Int.of_string(left_num) :: left, Int.of_string(right_num) :: right)
-    | [] -> (left, right)
-    | _ -> let _ = Stdio.print_endline ("weird match: " ^ Int.to_string (List.length matches)) in (left, right)
+    let this_report = List.map matches ~f:(fun x -> Int.of_string x) in
+    this_report :: lines
   ) in
-  let left_list = List.sort ~compare:Int.compare left_list in
-  let right_list = List.sort ~compare:Int.compare right_list in
-  let counts = List.fold ~init:(Map.empty (module Int)) right_list ~f:(
-    fun map x ->
-      match Map.find map x with
-      | Some count -> (Map.set map ~key:x ~data:(count + 1))
-      | None -> (Map.set map ~key:x ~data:1)
-  ) in
-  let score = List.fold ~init:0 left_list ~f:(
-    fun acc x ->
-      match Map.find counts x with
-      | Some count -> if count > 0 then acc + x * count else acc
-      | None -> acc
-  ) in
-  Stdio.print_endline (Int.to_string score)
+  let safe_reports = List.filter reports ~f:is_safe in
+  let () = Stdio.print_endline (Int.to_string (List.length safe_reports)) in
+  ()
